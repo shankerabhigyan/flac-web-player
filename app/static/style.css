@@ -1,11 +1,12 @@
 :root {
   color-scheme: dark;
-  --bg: #0d0b1a;
-  --bg-alt: #17142b;
-  --text: #f0eaff;
-  --text-dim: #9086b8;
-  --accent: #ff4fd8;
-  --accent2: #4fe8ff;
+  --bg: #1c1410;
+  --bg-alt: #241a14;
+  --text: #f3e6d5;
+  --text-dim: #a8927e;
+  --accent: #e8935a;
+  --accent2: #d4b45a;
+  --border: #3a2b21;
 }
 
 * { box-sizing: border-box; }
@@ -27,22 +28,43 @@ header {
   border-image: linear-gradient(90deg, var(--accent), var(--accent2)) 1;
 }
 
-header h1 { font-size: 1.1rem; margin: 0; white-space: nowrap; cursor: pointer; }
+header h1 {
+  font-size: 1.1rem;
+  margin: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+header h1::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      var(--bg) 0 12%, var(--accent) 12% 16%, var(--bg) 16% 40%,
+      var(--accent2) 40% 44%, var(--bg) 44% 70%, var(--accent2) 70% 74%, var(--bg) 74% 100%);
+}
 
 #search-input {
   flex: 1;
   max-width: 400px;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #333;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
   background: var(--bg-alt);
   color: var(--text);
 }
 
 #upload-btn, #playlists-btn, #recent-btn, #loop-btn, #lyrics-btn, .new-playlist-btn {
   padding: 0.5rem 0.9rem;
-  border-radius: 6px;
-  border: 1px solid #333;
+  border-radius: 999px;
+  border: 1px solid var(--border);
   background: var(--bg-alt);
   color: var(--text);
   cursor: pointer;
@@ -101,9 +123,11 @@ header h1 { font-size: 1.1rem; margin: 0; white-space: nowrap; cursor: pointer; 
 .playlist-header h2 { margin: 0; }
 
 .delete-playlist-btn {
-  border: 1px solid #333;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.35rem 0.7rem;
+  background: var(--bg-alt);
+  color: var(--text);
 }
 
 .delete-playlist-btn:hover { border-color: #ff6b6b; }
@@ -111,9 +135,9 @@ header h1 { font-size: 1.1rem; margin: 0; white-space: nowrap; cursor: pointer; 
 .upload-status {
   padding: 0.5rem 1.5rem;
   font-size: 0.85rem;
-  background: #1a2b3d;
-  color: #9ec9ff;
-  border-bottom: 1px solid #2a2a2a;
+  background: rgba(232, 147, 90, 0.12);
+  color: var(--accent2);
+  border-bottom: 1px solid var(--border);
 }
 
 .upload-status.error { background: #3d1a1a; color: #ffb3b3; }
@@ -137,7 +161,7 @@ main { padding: 1rem 1.5rem; }
 
 .artist-list li, .track-row {
   padding: 0.6rem 0.5rem;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
 
@@ -151,21 +175,46 @@ main { padding: 1rem 1.5rem; }
 
 .album-card { cursor: pointer; }
 
-.album-card img, .album-card .cover-placeholder {
-  width: 100%;
+.disc-wrap {
+  position: relative;
   aspect-ratio: 1;
+  margin-bottom: 0.5rem;
+}
+
+.disc-wrap .vinyl {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center,
+      #111 0 8%, #000 8% 30%, #1a1a1a 30% 31%,
+      #000 31% 55%, #1a1a1a 55% 56%, #000 56% 100%);
+  transform: translateX(35%) scale(0.92);
+  transition: transform 0.25s ease;
+}
+
+.disc-wrap .sleeve {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
   object-fit: cover;
   border-radius: 6px;
   background: var(--bg-alt);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease;
 }
 
-.album-card .cover-placeholder {
+.album-card:hover .sleeve { transform: translateX(-14%); }
+.album-card:hover .vinyl { transform: translateX(48%) scale(0.92); }
+
+.disc-wrap .cover-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-dim);
-  font-size: 2rem;
-  background: linear-gradient(135deg, #241f3d, #1a2f3d);
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, #3a2b21, #241a14);
 }
 
 .album-card .title { margin-top: 0.4rem; font-size: 0.9rem; }
@@ -184,7 +233,7 @@ main { padding: 1rem 1.5rem; }
   color: var(--accent2);
   border-left: 3px solid var(--accent2);
   padding-left: calc(0.5rem - 3px);
-  background: rgba(79, 232, 255, 0.1);
+  background: rgba(212, 180, 90, 0.1);
 }
 
 .track-row .track-actions { display: flex; gap: 0.3rem; }
@@ -208,7 +257,7 @@ main { padding: 1rem 1.5rem; }
   z-index: 200;
   min-width: 180px;
   background: var(--bg-alt);
-  border: 1px solid #333;
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   padding: 0.3rem;
@@ -223,7 +272,7 @@ main { padding: 1rem 1.5rem; }
 }
 
 .playlist-dropdown .dropdown-item:hover { background: rgba(255, 255, 255, 0.08); }
-.playlist-dropdown .dropdown-divider { border-top: 1px solid #333; margin: 0.3rem 0; }
+.playlist-dropdown .dropdown-divider { border-top: 1px solid var(--border); margin: 0.3rem 0; }
 .playlist-dropdown .dropdown-empty { color: var(--text-dim); padding: 0.5rem 0.6rem; }
 
 h2 { font-size: 1.1rem; margin: 0 0 0.75rem 0; }
@@ -250,8 +299,17 @@ h3 { font-size: 0.95rem; color: var(--text-dim); margin: 1.2rem 0 0.5rem 0; }
 #now-cover {
   width: 48px; height: 48px;
   object-fit: cover;
-  border-radius: 4px;
-  background: #333;
+  border-radius: 50%;
+  background: var(--border);
+  box-shadow: 0 0 0 2px var(--bg-alt), 0 0 0 3px var(--border);
+  animation: disc-spin 6s linear infinite;
+  animation-play-state: paused;
+}
+
+#now-cover.spinning { animation-play-state: running; }
+
+@keyframes disc-spin {
+  to { transform: rotate(360deg); }
 }
 
 #now-info { min-width: 160px; }
@@ -278,7 +336,7 @@ h3 { font-size: 0.95rem; color: var(--text-dim); margin: 1.2rem 0 0.5rem 0; }
   width: 60px;
   height: 6px;
   border-radius: 3px;
-  background: #333;
+  background: var(--border);
   overflow: hidden;
 }
 
@@ -320,7 +378,7 @@ h3 { font-size: 0.95rem; color: var(--text-dim); margin: 1.2rem 0 0.5rem 0; }
 .modal input {
   padding: 0.5rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid #333;
+  border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
 }
@@ -330,7 +388,7 @@ h3 { font-size: 0.95rem; color: var(--text-dim); margin: 1.2rem 0 0.5rem 0; }
   border-radius: 6px;
   border: none;
   background: linear-gradient(90deg, var(--accent), var(--accent2));
-  color: #0d0b1a;
+  color: var(--bg);
   font-weight: 600;
   cursor: pointer;
 }

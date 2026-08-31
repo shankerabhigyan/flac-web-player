@@ -1,7 +1,26 @@
 # Abhigyan's FLAC Player
 
-Personal pipeline + API for storing a FLAC library in Cloudflare R2 and streaming it to
-any device, with near-zero ongoing cost (R2 has $0 egress).
+[![CI](https://github.com/shankerabhigyan/flac-web-player/actions/workflows/ci.yml/badge.svg)](https://github.com/shankerabhigyan/flac-web-player/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A self-hosted pipeline + API for storing your own FLAC library in Cloudflare R2 and streaming
+it to any device, with near-zero ongoing cost (R2 has $0 egress). Includes a web player and
+Subsonic API compatibility for mobile clients. You bring the FLAC files (from CDs you own,
+Bandcamp purchases, your own recordings, etc.) — this project only stores and streams what
+you already have.
+
+## Contents
+
+- [Stack](#stack)
+- [Status](#status)
+- [Setup](#setup)
+- [API](#api-phase-2)
+- [Subsonic API](#subsonic-api-phase-3)
+- [Web player](#web-player-phase-5)
+- [Testing & CI](#testing--ci)
+- [Theme](#theme)
+- [Data model](#data-model)
+- [License](#license)
 
 ## Stack
 
@@ -25,6 +44,8 @@ any device, with near-zero ongoing cost (R2 has $0 egress).
 ## Setup
 
 ```bash
+git clone https://github.com/shankerabhigyan/flac-web-player.git
+cd flac-web-player
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -193,11 +214,14 @@ gradient-SVG placeholder. Referenced via `<link rel="icon" type="image/webp" hre
 
 ## Theme
 
-Neon Synthwave: near-black background (`#0d0b1a`/`#17142b`), magenta/cyan gradient accents
-(`--accent`/`--accent2` in `style.css`) on the header/player-bar borders, the playing-track
-highlight, the upload button's hover glow, and the modal's submit button. Chosen from three
-mocked-up directions (Vinyl Amber, Neon Synthwave, Aurora Teal-Violet) previewed live in-browser
-before committing.
+Vinyl Warmth: warm amber/brown palette (`--bg #1c1410`, `--accent #e8935a`, `--accent2 #d4b45a`
+in `style.css`) with pill-shaped nav/search elements and a small vinyl-disc mark next to the
+title. Album covers get a sleeve-and-vinyl-peek treatment on hover (`.disc-wrap`/`.vinyl`/`.sleeve`
+in `style.css`, built in `renderAlbumGrid` in `app.js`) and the now-playing cover art in the
+player bar is circular and spins while audio is playing (`#now-cover.spinning`, toggled by the
+`audio` element's native `play`/`pause` events). Replaces an earlier Neon Synthwave theme; both
+were chosen from a small set of directions mocked up and previewed live in-browser before
+implementation.
 
 ## Data model
 
@@ -222,3 +246,9 @@ credited to them — solo work and featured/collab tracks alike, even when a col
 display artist is someone else. This means "Asfar Hussain" and "Xulfi" each show up once, with
 their shared collab album appearing under both — rather than a compound string like
 `"Asfar Hussain; Xulfi"` fragmenting into its own disconnected artist entry.
+
+## License
+
+[MIT](LICENSE) — do whatever you'd like with this, no warranty provided. This project doesn't
+include or endorse any means of acquiring music; it's a storage/streaming layer for a library
+you already own.

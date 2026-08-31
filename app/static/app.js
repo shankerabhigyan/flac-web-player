@@ -88,6 +88,9 @@ function renderLyricsText(lyrics) {
   });
 }
 
+audio.addEventListener('play', () => nowCover.classList.add('spinning'));
+audio.addEventListener('pause', () => nowCover.classList.remove('spinning'));
+
 audio.addEventListener('timeupdate', () => {
   if (!lrcLines.length || !lyricsSidebar.classList.contains('open')) return;
   const t = audio.currentTime;
@@ -307,16 +310,23 @@ async function renderAlbumGrid(albums) {
     card.onclick = () => goToAlbum(album.id);
 
     const coverUrl = album.has_cover ? await getCoverUrl(album.id) : null;
+    const discWrap = document.createElement('div');
+    discWrap.className = 'disc-wrap';
+    const vinyl = document.createElement('div');
+    vinyl.className = 'vinyl';
+    discWrap.appendChild(vinyl);
     if (coverUrl) {
       const img = document.createElement('img');
+      img.className = 'sleeve';
       img.src = coverUrl;
-      card.appendChild(img);
+      discWrap.appendChild(img);
     } else {
       const ph = document.createElement('div');
-      ph.className = 'cover-placeholder';
+      ph.className = 'sleeve cover-placeholder';
       ph.textContent = '♪';
-      card.appendChild(ph);
+      discWrap.appendChild(ph);
     }
+    card.appendChild(discWrap);
 
     const title = document.createElement('div');
     title.className = 'title';
