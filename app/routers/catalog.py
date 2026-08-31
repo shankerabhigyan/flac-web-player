@@ -3,13 +3,23 @@ import sqlite3
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import require_api_key
-from app.db import get_artist_albums, get_connection, get_recent_tracks, get_track_lyrics
+from app.db import (
+    get_artist_albums,
+    get_connection,
+    get_listening_stats_summary,
+    get_play_timestamps,
+    get_recent_tracks,
+    get_top_artists,
+    get_top_tracks,
+    get_track_lyrics,
+)
 from app.schemas import (
     AlbumDetailOut,
     AlbumOut,
     ArtistOut,
     RecentTrackOut,
     SearchOut,
+    StatsOut,
     TrackLyricsOut,
     TrackOut,
 )
@@ -105,6 +115,23 @@ def list_recent(limit: int = 50):
         {**_track_out(r), "artist_name": r["artist_name"], "album_title": r["album_title"], "played_at": r["played_at"]}
         for r in rows
     ]
+
+
+@router.get("/stats", response_model=StatsOut)
+def get_stats():
+    with get_connection() as conn:
+        summary = get_listening_stats_summary(conn)
+        top_artists = get_top_artists(conn)
+        top_tracks = get_top_tracks(conn)
+        timestamps = get_play_timestamps(conn)
+    return {
+        "total_plays": summary["total_plays"],
+        "unique_tracks": summary["unique_tracks"],
+        "total_hours": round(summary["total_seconds"] / 3600, 1),
+        "top_artists": [dict(r) for r in top_artists],
+        "top_tracks": [dict(r) for r in top_tracks],
+        "play_timestamps": [r["played_at"] for r in timestamps],
+    }
 
 
 @router.get("/search", response_model=SearchOut)

@@ -68,6 +68,8 @@ collide: loading `/playlists` in a browser renders the app, while `/api/playlist
 - `GET /api/tracks/{track_id}`
 - `GET /api/recent?limit=50` — most recently played tracks, one row per track (deduped to the
   latest play so a looped song doesn't flood the list)
+- `GET /api/stats` — listening stats: total plays/unique tracks/hours, top artists, top tracks,
+  and raw play timestamps for client-side heatmap bucketing (see "Listening stats" below)
 - `GET /api/search?q=...` — matches across artists/albums/tracks
 - `GET /api/stream/{track_id}` — returns a presigned R2 URL (1hr TTL), the client streams directly from R2
 - `GET /api/cover/{album_id}` — same presigned-URL pattern for artwork
@@ -121,6 +123,36 @@ metrics (see below), playlists: a
 and playlist view) opening a dropdown to add that track to an existing playlist or create a new
 one on the spot, and a "×" button to remove a track when viewing a playlist; and a "Recent"
 button showing your most recently played tracks (see below).
+
+### Listening stats
+
+A "Stats" button (`/stats`) shows total plays, unique tracks played, and an estimate of hours
+listened (plays × each track's own duration — an estimate since a play is logged at
+stream-start, not confirmed listen-through), plus Top Artists and Top Tracks ranked by play
+count and a Sun–Sat × 0–23h heatmap of when you listen. Built entirely from the same
+`play_history` table as Recently Played (`app/db.py`'s `get_listening_stats_summary`,
+`get_top_artists`, `get_top_tracks`, `get_play_timestamps`; `GET /api/stats`). Top Artists
+attributes a play to *every* artist credited on the track via `track_artists` (not just the
+album's display artist), consistent with how artist pages are resolved elsewhere — see
+"Multi-artist tracks" below. The heatmap buckets by the viewer's local hour/weekday client-side
+(`app.js`'s `buildHeatmap`) rather than the UTC timestamps stored in the DB, so raw timestamps
+are sent to the client (capped at the most recent 2000 plays) instead of pre-aggregating server-side.
+
+### Live spectrum visualizer
+
+A live frequency-bar visualizer spans the top of the player bar while a track plays, driven by
+the Web Audio API: the `<audio>` element is tapped into an `AnalyserNode` (`app.js`'s
+`ensureAudioGraph`), whose output still flows to `audioCtx.destination` so playback is
+unaffected — the node only adds a read-only frequency-data tap. Bars render on a `<canvas>` via
+`requestAnimationFrame`, starting/stopping with the audio's native `play`/`pause` events (so it
+also doesn't spin CPU while idle).
+
+**Requires R2 bucket CORS.** Reading frequency data from a cross-origin `<audio>` source needs
+the `crossorigin="anonymous"` attribute *and* a CORS policy on the R2 bucket allowing GET from
+the app's origin — without both, the analyser silently reads all zeros (with `crossorigin` set
+but no CORS policy, the browser instead refuses to load the audio at all, breaking playback).
+`scripts/set_r2_cors.py` sets this via `put_bucket_cors`; re-run it (after editing
+`ALLOWED_ORIGINS`) if you deploy somewhere other than `localhost:8123`.
 
 ### Recently played
 

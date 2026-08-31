@@ -10,7 +10,10 @@ const uploadBtn = document.getElementById('upload-btn');
 const uploadInput = document.getElementById('upload-input');
 const uploadStatus = document.getElementById('upload-status');
 const recentBtn = document.getElementById('recent-btn');
+const statsBtn = document.getElementById('stats-btn');
 const playlistsBtn = document.getElementById('playlists-btn');
+const vizCanvas = document.getElementById('viz-canvas');
+const vizCtx = vizCanvas.getContext('2d');
 const loopBtn = document.getElementById('loop-btn');
 const lyricsBtn = document.getElementById('lyrics-btn');
 const lyricsSidebar = document.getElementById('lyrics-sidebar');
@@ -90,6 +93,70 @@ function renderLyricsText(lyrics) {
 
 audio.addEventListener('play', () => nowCover.classList.add('spinning'));
 audio.addEventListener('pause', () => nowCover.classList.remove('spinning'));
+
+// --- Live spectrum visualizer ---
+// Taps the <audio> element into the Web Audio API via an AnalyserNode. The node
+// chain still ends at audioCtx.destination, so playback is unaffected — this only
+// adds a read-only frequency-data tap alongside the normal output path.
+
+let audioCtx = null;
+let analyser = null;
+let vizFrame = null;
+
+function ensureAudioGraph() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaElementSource(audio);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 128;
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function resizeVizCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = vizCanvas.getBoundingClientRect();
+  vizCanvas.width = rect.width * dpr;
+  vizCanvas.height = rect.height * dpr;
+  vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function drawVisualizer() {
+  vizFrame = requestAnimationFrame(drawVisualizer);
+  const width = vizCanvas.clientWidth;
+  const height = vizCanvas.clientHeight;
+  vizCtx.clearRect(0, 0, width, height);
+  if (!analyser) return;
+
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+
+  const gradient = vizCtx.createLinearGradient(0, height, 0, 0);
+  gradient.addColorStop(0, '#e8935a');
+  gradient.addColorStop(1, '#d4b45a');
+  vizCtx.fillStyle = gradient;
+
+  const barWidth = width / data.length;
+  for (let i = 0; i < data.length; i++) {
+    const barHeight = (data[i] / 255) * height;
+    vizCtx.fillRect(i * barWidth, height - barHeight, Math.max(1, barWidth - 1), barHeight);
+  }
+}
+
+audio.addEventListener('play', () => {
+  ensureAudioGraph();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!vizFrame) drawVisualizer();
+});
+
+audio.addEventListener('pause', () => {
+  if (vizFrame) cancelAnimationFrame(vizFrame);
+  vizFrame = null;
+  vizCtx.clearRect(0, 0, vizCanvas.clientWidth, vizCanvas.clientHeight);
+});
+
+window.addEventListener('resize', resizeVizCanvas);
+resizeVizCanvas();
 
 audio.addEventListener('timeupdate', () => {
   if (!lrcLines.length || !lyricsSidebar.classList.contains('open')) return;
@@ -453,6 +520,115 @@ async function showRecent() {
   content.appendChild(list);
 }
 
+// --- Listening stats ---
+
+function pluralPlays(n) {
+  return `${n} play${n === 1 ? '' : 's'}`;
+}
+
+function buildHeatmap(timestamps) {
+  // Bucket by the viewer's local hour/weekday (not the UTC time stored server-side).
+  const counts = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  timestamps.forEach((iso) => {
+    const d = new Date(iso.replace(' ', 'T') + 'Z');
+    counts[d.getDay()][d.getHours()] += 1;
+  });
+  const max = Math.max(1, ...counts.flat());
+
+  const wrap = document.createElement('div');
+  wrap.className = 'heatmap-wrap';
+  const grid = document.createElement('div');
+  grid.className = 'heatmap';
+
+  grid.appendChild(document.createElement('div')); // corner spacer
+  for (let h = 0; h < 24; h++) {
+    const label = document.createElement('div');
+    label.className = 'heatmap-hour-label';
+    label.textContent = h % 3 === 0 ? h : '';
+    grid.appendChild(label);
+  }
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  dayNames.forEach((day, dayIdx) => {
+    const label = document.createElement('div');
+    label.className = 'heatmap-day-label';
+    label.textContent = day;
+    grid.appendChild(label);
+
+    for (let h = 0; h < 24; h++) {
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      cell.title = `${pluralPlays(counts[dayIdx][h])} · ${day} ${h}:00`;
+      cell.style.setProperty('--intensity', counts[dayIdx][h] / max);
+      grid.appendChild(cell);
+    }
+  });
+
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+async function showStats() {
+  setBreadcrumbs([{ label: 'Listening Stats' }]);
+  const stats = await apiFetch('/stats');
+  content.innerHTML = '';
+
+  if (stats.total_plays === 0) {
+    content.innerHTML = '<div class="empty">Nothing played yet — stats will show up once you do.</div>';
+    return;
+  }
+
+  const summary = document.createElement('div');
+  summary.className = 'stats-summary';
+  [
+    [stats.total_plays, 'Plays'],
+    [stats.unique_tracks, 'Unique tracks'],
+    [stats.total_hours, 'Hours listened'],
+  ].forEach(([value, label]) => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.innerHTML = `<div class="stat-value">${value}</div><div class="stat-label">${label}</div>`;
+    summary.appendChild(card);
+  });
+  content.appendChild(summary);
+
+  const columns = document.createElement('div');
+  columns.className = 'stats-columns';
+
+  const artistsCol = document.createElement('div');
+  artistsCol.innerHTML = '<h3>Top Artists</h3>';
+  const artistsList = document.createElement('ul');
+  artistsList.className = 'stats-rank-list';
+  stats.top_artists.forEach((a, i) => {
+    const li = document.createElement('li');
+    li.className = 'clickable';
+    li.innerHTML = `<span class="rank">${i + 1}</span><span class="name">${a.name}</span><span class="count">${pluralPlays(a.play_count)}</span>`;
+    li.onclick = () => goToArtist(a.id, a.name);
+    artistsList.appendChild(li);
+  });
+  artistsCol.appendChild(artistsList);
+  columns.appendChild(artistsCol);
+
+  const tracksCol = document.createElement('div');
+  tracksCol.innerHTML = '<h3>Top Tracks</h3>';
+  const tracksList = document.createElement('ul');
+  tracksList.className = 'stats-rank-list';
+  stats.top_tracks.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="rank">${i + 1}</span><span class="name">${t.title}<span class="sub">${t.artist_name} — ${t.album_title}</span></span><span class="count">${pluralPlays(t.play_count)}</span>`;
+    tracksList.appendChild(li);
+  });
+  tracksCol.appendChild(tracksList);
+  columns.appendChild(tracksCol);
+
+  content.appendChild(columns);
+
+  const heatmapHeading = document.createElement('h3');
+  heatmapHeading.textContent = 'When you listen';
+  content.appendChild(heatmapHeading);
+  content.appendChild(buildHeatmap(stats.play_timestamps));
+}
+
 // --- Playlists ---
 
 async function showPlaylists() {
@@ -633,6 +809,7 @@ playlistForm.addEventListener('submit', async (e) => {
 
 playlistsBtn.addEventListener('click', () => goToPlaylists());
 recentBtn.addEventListener('click', () => goToRecent());
+statsBtn.addEventListener('click', () => goToStats());
 
 async function playCurrent() {
   const track = queue[queueIndex];
@@ -921,6 +1098,11 @@ function goToRecent() {
   showRecent();
 }
 
+function goToStats() {
+  history.pushState({}, '', '/stats');
+  showStats();
+}
+
 function goToPlaylists() {
   history.pushState({}, '', '/playlists');
   showPlaylists();
@@ -945,6 +1127,7 @@ function route() {
   if ((m = path.match(/^\/artists\/(\d+)\/?$/))) return showArtistAlbums(Number(m[1]));
   if ((m = path.match(/^\/albums\/(\d+)\/?$/))) return showAlbum(Number(m[1]));
   if (path === '/recent' || path === '/recent/') return showRecent();
+  if (path === '/stats' || path === '/stats/') return showStats();
   if (path === '/playlists' || path === '/playlists/') return showPlaylists();
   if ((m = path.match(/^\/playlists\/(\d+)\/?$/))) return showPlaylist(Number(m[1]));
   if (path === '/search' || path === '/search/') {

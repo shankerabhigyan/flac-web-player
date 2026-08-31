@@ -92,3 +92,26 @@ class RecentTrackOut(TrackOut):
     artist_name: str
     album_title: str
     played_at: str
+
+
+class TopArtistOut(BaseModel):
+    id: int
+    name: str
+    play_count: int
+
+
+class TopTrackOut(BaseModel):
+    id: int
+    title: str
+    artist_name: str
+    album_title: str
+    play_count: int
+
+
+class StatsOut(BaseModel):
+    total_plays: int
+    unique_tracks: int
+    total_hours: float
+    top_artists: list[TopArtistOut]
+    top_tracks: list[TopTrackOut]
+    play_timestamps: list[str]

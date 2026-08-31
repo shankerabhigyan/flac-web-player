@@ -11,6 +11,7 @@
     <h1>Abhigyan's FLAC Player</h1>
     <input id="search-input" type="search" placeholder="Search artists, albums, tracks..." />
     <button id="recent-btn" type="button">Recent</button>
+    <button id="stats-btn" type="button">Stats</button>
     <button id="playlists-btn" type="button">Playlists</button>
     <button id="upload-btn" type="button">Upload</button>
     <input id="upload-input" type="file" accept=".flac" multiple hidden />
@@ -49,13 +50,14 @@
   </aside>
 
   <footer id="player-bar">
+    <canvas id="viz-canvas" height="48"></canvas>
     <div id="player-row">
       <img id="now-cover" alt="" />
       <div id="now-info">
         <div id="now-title">Nothing playing</div>
         <div id="now-artist"></div>
       </div>
-      <audio id="audio" controls></audio>
+      <audio id="audio" controls crossorigin="anonymous"></audio>
       <button id="loop-btn" type="button" title="Repeat: Off">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="17 1 21 5 17 9"></polyline>

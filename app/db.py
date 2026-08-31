@@ -102,6 +102,67 @@ def record_play(conn: sqlite3.Connection, track_id: int) -> None:
     conn.execute("INSERT INTO play_history (track_id) VALUES (?)", (track_id,))
 
 
+def get_listening_stats_summary(conn: sqlite3.Connection) -> sqlite3.Row:
+    """Total plays logged, distinct tracks played, and total listening time — the
+    latter is plays x each track's own duration, since we log a play at stream-start
+    (not actual listened duration), so this is 'time requested' rather than a precise
+    listened total."""
+    return conn.execute(
+        """
+        SELECT COUNT(*) AS total_plays,
+               COUNT(DISTINCT play_history.track_id) AS unique_tracks,
+               COALESCE(SUM(tracks.duration_sec), 0) AS total_seconds
+        FROM play_history
+        JOIN tracks ON tracks.id = play_history.track_id
+        """
+    ).fetchone()
+
+
+def get_top_artists(conn: sqlite3.Connection, limit: int = 10) -> list[sqlite3.Row]:
+    """Ranked by play count, attributing a play to every artist credited on the
+    track (via track_artists) so a collab track counts for each artist involved —
+    consistent with how artist pages are resolved elsewhere (see get_artist_albums)."""
+    return conn.execute(
+        """
+        SELECT artists.id, artists.name, COUNT(*) AS play_count
+        FROM play_history
+        JOIN tracks ON tracks.id = play_history.track_id
+        JOIN track_artists ON track_artists.track_id = tracks.id
+        JOIN artists ON artists.id = track_artists.artist_id
+        GROUP BY artists.id
+        ORDER BY play_count DESC, artists.name COLLATE NOCASE
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+
+
+def get_top_tracks(conn: sqlite3.Connection, limit: int = 10) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT tracks.id, tracks.title, albums.title AS album_title,
+               artists.name AS artist_name, COUNT(*) AS play_count
+        FROM play_history
+        JOIN tracks ON tracks.id = play_history.track_id
+        JOIN albums ON albums.id = tracks.album_id
+        JOIN artists ON artists.id = albums.artist_id
+        GROUP BY tracks.id
+        ORDER BY play_count DESC, tracks.title COLLATE NOCASE
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+
+
+def get_play_timestamps(conn: sqlite3.Connection, limit: int = 2000) -> list[sqlite3.Row]:
+    """Raw play timestamps (most recent first) for client-side heatmap bucketing —
+    bucketing by hour/weekday client-side lets it use the viewer's local time rather
+    than the UTC times stored in the DB."""
+    return conn.execute(
+        "SELECT played_at FROM play_history ORDER BY played_at DESC LIMIT ?", (limit,)
+    ).fetchall()
+
+
 def get_recent_tracks(conn: sqlite3.Connection, limit: int = 50) -> list[sqlite3.Row]:
     """Most recently played tracks, one row per track (deduped by latest play) so a
     looped/repeated track doesn't flood the list with consecutive duplicates."""
