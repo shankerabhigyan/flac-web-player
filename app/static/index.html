@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Abhigyan's FLAC Player</title>
+<link rel="icon" type="image/webp" href="/static/favicon.webp" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Abhigyan's FLAC Player</h1>
+    <input id="search-input" type="search" placeholder="Search artists, albums, tracks..." />
+    <button id="recent-btn" type="button">Recent</button>
+    <button id="playlists-btn" type="button">Playlists</button>
+    <button id="upload-btn" type="button">Upload</button>
+    <input id="upload-input" type="file" accept=".flac" multiple hidden />
+  </header>
+
+  <div id="upload-status" class="upload-status hidden"></div>
+
+  <nav id="breadcrumbs"></nav>
+
+  <main id="content"></main>
+
+  <div id="api-key-modal" class="modal hidden">
+    <form id="api-key-form">
+      <label for="api-key-input">API key</label>
+      <input id="api-key-input" type="password" placeholder="API_AUTH_KEY from .env" autocomplete="off" />
+      <button type="submit">Continue</button>
+      <div id="api-key-error" class="error"></div>
+    </form>
+  </div>
+
+  <div id="playlist-modal" class="modal hidden">
+    <form id="playlist-form">
+      <label for="playlist-name-input">Playlist name</label>
+      <input id="playlist-name-input" type="text" placeholder="e.g. Workout" autocomplete="off" />
+      <button type="submit">Create</button>
+      <div id="playlist-error" class="error"></div>
+    </form>
+  </div>
+
+  <aside id="lyrics-sidebar" class="lyrics-sidebar">
+    <div class="lyrics-header">
+      <h3 id="lyrics-track-title"></h3>
+      <button id="lyrics-close-btn" type="button" title="Close">&times;</button>
+    </div>
+    <div id="lyrics-content"></div>
+  </aside>
+
+  <footer id="player-bar">
+    <div id="player-row">
+      <img id="now-cover" alt="" />
+      <div id="now-info">
+        <div id="now-title">Nothing playing</div>
+        <div id="now-artist"></div>
+      </div>
+      <audio id="audio" controls></audio>
+      <button id="loop-btn" type="button" title="Repeat: Off">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="17 1 21 5 17 9"></polyline>
+          <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+          <polyline points="7 23 3 19 7 15"></polyline>
+          <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+        </svg>
+        <span id="loop-badge" class="loop-badge hidden">1</span>
+      </button>
+      <button id="lyrics-btn" type="button" title="Show lyrics">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          <line x1="7" y1="8" x2="17" y2="8"></line>
+          <line x1="7" y1="12" x2="13" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+    <div id="now-stats"></div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
